@@ -36,12 +36,6 @@ func isConnectedSince(transport rafthttp.Transporter, since time.Time, remote ty
 	return !t.IsZero() && t.Before(since)
 }
 
-// isConnectedFullySince checks whether the local member is connected to all
-// members in the cluster since the given time.
-func isConnectedFullySince(transport rafthttp.Transporter, since time.Time, self types.ID, members []*membership.Member) bool {
-	return numConnectedSince(transport, since, self, members) == len(members)
-}
-
 // numConnectedSince counts how many members are connected to the local member
 // since the given time.
 func numConnectedSince(transport rafthttp.Transporter, since time.Time, self types.ID, members []*membership.Member) int {

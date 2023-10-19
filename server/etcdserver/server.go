@@ -1341,8 +1341,12 @@ func (s *EtcdServer) mayAddMember(memb membership.Member) error {
 		return nil
 	}
 
+	if memb.IsLearner {
+		return nil
+	}
+
 	// protect quorum when adding voting member
-	if !memb.IsLearner && !s.cluster.IsReadyToAddVotingMember() {
+	if !s.cluster.IsReadyToAddVotingMember() {
 		lg.Warn(
 			"rejecting member add request; not enough healthy members",
 			zap.String("local-member-id", s.MemberId().String()),
@@ -1352,7 +1356,10 @@ func (s *EtcdServer) mayAddMember(memb membership.Member) error {
 		return errors.ErrNotEnoughStartedMembers
 	}
 
-	if !isConnectedFullySince(s.r.transport, time.Now().Add(-HealthInterval), s.MemberId(), s.cluster.VotingMembers()) {
+	// protect quorum if some members are down
+	m := s.cluster.VotingMembers()
+	active := numConnectedSince(s.r.transport, time.Now().Add(-HealthInterval), s.MemberId(), m)
+	if active < 1+((len(m)-1+1)/2) {
 		lg.Warn(
 			"rejecting member add request; local member has not been connected to all peers, reconfigure breaks active quorum",
 			zap.String("local-member-id", s.MemberId().String()),
